@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="description"
+        content="Policy Improvement Reinforcement Learning - Stabilizing RLVR via Retrospective Verification for Large Language Models">
+  <meta name="keywords" content="LLM, Reasoning, Reinforcement Learning, RLVR, GRPO, PIPO">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PIPO: Policy Improvement Policy Optimization</title>
+
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
+
+  <style>
+    :root {
+      --primary: #363636;
+      --primary-light: #4a4a4a;
+      --text-dark: #1f2937;
+      --text-muted: #6b7280;
+      --bg-white: #ffffff;
+      --bg-gray: #f9fafb;
+      --border-light: #e5e7eb;
+      --sage-red: #ab1727;
+      --sage-blue: #2563eb;
+    }
+    
+    body { color: var(--text-dark); }
+    
+    .hero { background: #f3f4f6; border-bottom: 1px solid #e5e7eb; overflow: visible !important; }
+    .hero .hero-body { padding-top: 2rem; padding-bottom: 0.8rem; overflow: visible !important; }
+    .hero * { overflow: visible !important; }
+    .hero .container, .hero .columns, .hero .column { overflow: visible !important; max-height: none !important; }
+    .hero .title.is-1 { color: var(--sage-red); font-weight: 400; font-family: Georgia, 'Times New Roman', serif; }
+    @media (min-width: 769px) {
+      .hero .title.is-1 { white-space: nowrap; }
+    }
+    .hero .publication-authors a { color: #374151 !important; }
+    .hero .publication-authors a:hover { color: var(--sage-red) !important; text-decoration: underline; }
+    .hero .publication-authors span { color: #4b5563; }
+    
+    .publication-links .button {
+      margin: 0.25rem;
+      background: transparent;
+      border: 1px solid #d1d5db;
+      color: #374151;
+      transition: all 0.2s ease;
+    }
+    .publication-links .button:hover {
+      background: #f3f4f6;
+      border-color: #9ca3af;
+      color: #1f2937;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    /* Section titles */
+    h2.section-title,
+    h3.section-title,
+    h4.subsection-title,
+    .title.section-title {
+      color: var(--primary) !important;
+      font-weight: 600;
+      font-family: 'Google Sans', sans-serif;
+      margin-bottom: 1.5rem;
+    }
+    
+    h2.section-title {
+      position: relative;
+      padding-bottom: 0.8rem;
+    }
+    
+    h2.section-title::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 60px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--sage-red), var(--sage-blue));
+      border-radius: 2px;
+    }
+    
+    h4.subsection-title {
+      font-size: 1.25rem;
+      font-family: 'Google Sans', sans-serif;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      color: var(--primary-light) !important;
+    }
+    
+    /* Body text */
+    .content p, .content li {
+      font-family: 'Noto Sans', sans-serif;
+      font-size: 1.15rem;
+      line-height: 1.8;
+    }
+    
+    .section-white { background: var(--bg-white); }
+    .section-gray { background: var(--bg-gray); }
+    
+    .insight-box {
+      background: #fafafa;
+      border: 1px solid var(--border-light);
+      border-left: 4px solid #9ca3af;
+      padding: 1.5rem 2rem;
+      border-radius: 4px;
+      margin: 1.5rem 0;
+    }
+    .insight-box p {
+      font-family: 'Castoro', Georgia, serif;
+      font-size: 1.1rem;
+    }
+    
+    .math-comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin: 2rem 0;
+    }
+    @media (max-width: 768px) { .math-comparison { grid-template-columns: 1fr; } }
+    
+    .math-box {
+      background: #fff;
+      border-radius: 6px;
+      padding: 1.5rem;
+      border: 1px solid var(--border-light);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .math-box:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    .math-box.rl { border-top: 3px solid #dc2626; }
+    .math-box.ml { border-top: 3px solid var(--primary); }
+    .math-box h4 { font-weight: 600; margin-bottom: 1rem; color: var(--text-dark); font-size: 1.25rem; }
+    .math-box p { font-size: 1.1rem; line-height: 1.7; }
+    
+    .figure-container {
+      background: transparent;
+      border-radius: 0;
+      padding: 1rem 0;
+      border: none;
+      margin: 1.5rem 0;
+    }
+    .figure-container img { 
+      border-radius: 4px;
+      transition: transform 0.3s ease;
+    }
+    .figure-container img:hover {
+      transform: scale(1.01);
+    }
+    .figure-caption { font-size: 1.1rem; color: var(--text-muted); margin-top: 1rem; text-align: center; line-height: 1.6; }
+    
+    /* Equal height for analysis figures */
+    .analysis-columns {
+      display: flex;
+      gap: 1.5rem;
+      align-items: stretch;
+    }
+    .analysis-columns .analysis-col {
+      flex: 1;
+      display: flex;
+    }
+    .analysis-columns .figure-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      margin: 0;
+    }
+    .analysis-columns .figure-container .img-wrapper {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .analysis-columns .figure-container img {
+      max-width: 100%;
+      max-height: 280px;
+      object-fit: contain;
+    }
+    @media (max-width: 768px) {
+      .analysis-columns { flex-direction: column; }
+    }
+    
+    .result-card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 2rem;
+      margin: 1.5rem 0;
+      border: 1px solid var(--border-light);
+      transition: box-shadow 0.3s ease;
+    }
+    .result-card:hover {
+      box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+    }
+    .result-card h4 { color: var(--text-dark); font-weight: 600; margin-bottom: 1rem; }
+    
+    .highlight-stat {
+      background: var(--primary);
+      color: #fff;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .highlight-stat.sage { background: var(--sage-blue); }
+    
+    .algorithm-box {
+      background: #1f2937;
+      color: #e5e7eb;
+      border-radius: 6px;
+      padding: 1.5rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      overflow-x: auto;
+    }
+    .algorithm-box .comment { color: #9ca3af; }
+    .algorithm-box .keyword { color: #f472b6; }
+    .algorithm-box .function { color: #60a5fa; }
+    
+    table.comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      background: #fff;
+      border: 1px solid var(--border-light);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    table.comparison-table th {
+      background: var(--primary);
+      color: #fff !important;
+      padding: 0.75rem 1rem;
+      font-weight: 600;
+      text-align: left;
+    }
+    table.comparison-table th * { color: #fff !important; }
+    table.comparison-table th .katex, table.comparison-table th .katex * { color: #fff !important; }
+    table.comparison-table td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-light); }
+    table.comparison-table tr:last-child td { border-bottom: none; }
+    table.comparison-table tr:hover td { background: var(--bg-gray); }
+    
+    pre code { display: block; padding: 1rem; background: #1f2937; color: #e5e7eb; border-radius: 6px; overflow-x: auto; }
+    .bibtex-box { 
+      background: #374151;
+      border: 1px solid #4b5563;
+      border-radius: 8px; 
+      padding: 1.5rem;
+    }
+    .bibtex-box pre {
+      margin: 0;
+      background: transparent;
+    }
+    .bibtex-box code {
+      font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', monospace;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: #e5e7eb;
+      background: transparent;
+      padding: 0;
+    }
+    
+    footer.footer { background: #1f2937; color: #9ca3af; padding: 2rem; overflow: hidden; }
+    footer.footer .columns { margin: 0; }
+    footer.footer .container { overflow: hidden; }
+    footer a { color: #93c5fd; }
+    footer a:hover { color: #bfdbfe; }
+    
+    .emoji-icon { margin-right: 0.5rem; }
+    .section { 
+      padding: 3rem 1.5rem;
+      position: relative;
+    }
+    
+    .section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border-light), transparent);
+    }
+    
+    .formula-box {
+      background: transparent;
+      border: none;
+      padding: 1rem 0;
+      margin: 1.5rem 0;
+      text-align: center;
+    }
+    
+    
+    .conclusion-box {
+      background: #fff;
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      padding: 2rem;
+    }
+    .conclusion-box p {
+      line-height: 1.8;
+      margin-bottom: 1rem;
+    }
+    .conclusion-box p:last-child {
+      margin-bottom: 0;
+    }
+    
+    /* Formula boxes - handle overflow */
+    .formula-box { 
+      overflow-x: auto; 
+      padding: 0.5rem;
+    }
+    
+    /* KaTeX formula overflow handling */
+    .katex-display { overflow-x: auto; overflow-y: hidden; }
+    
+    /* Table wrapper for mobile scrolling */
+    .comparison-table-wrapper {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    /* ==================== MOBILE RESPONSIVE STYLES ==================== */
+    
+    /* Tablets and smaller */
+    @media (max-width: 1024px) {
+      .hero .title.is-1 { font-size: 2.2rem; }
+    }
+    
+    /* Mobile devices */
+    @media (max-width: 768px) {
+      /* Hero Section */
+      .hero .hero-body { padding-top: 1.2rem; padding-bottom: 0.6rem; }
+      .hero .title.is-1 { 
+        font-size: 1.5rem; 
+        white-space: normal !important; 
+        line-height: 1.3;
+      }
+      .hero .subtitle.is-4 { font-size: 1rem; }
+      
+      /* Authors - make them wrap nicely */
+      .publication-authors { font-size: 0.9rem !important; }
+      .publication-authors .author-block { 
+        display: inline; 
+        white-space: nowrap;
+      }
+      .is-size-6.publication-authors { font-size: 0.8rem !important; }
+      .is-size-6.publication-authors .author-block { margin-left: 0.3em !important; }
+      
+      /* Section padding */
+      .section { padding: 2rem 1rem; }
+      
+      /* Titles */
+      h2.title.is-3, .title.is-3.section-title { font-size: 1.4rem; }
+      h4.subsection-title { font-size: 1.1rem; }
+      
+      /* Math comparison boxes */
+      .math-comparison { gap: 1rem; }
+      .math-box { padding: 1rem; }
+      .math-box h4 { font-size: 1.1rem; }
+      .math-box p { font-size: 1rem; }
+      
+      /* Insight boxes */
+      .insight-box { padding: 1rem 1.25rem; }
+      .insight-box p { font-size: 1rem; }
+      
+      /* Result cards */
+      .result-card { padding: 1.25rem; }
+      .result-card h4 { font-size: 1.1rem; }
+      
+      /* Figure captions */
+      .figure-caption { font-size: 1rem; }
+      
+      /* Conclusion box */
+      .conclusion-box { padding: 1.25rem; }
+      
+      /* Formula boxes - handle overflow */
+      .formula-box { 
+        overflow-x: auto; 
+        padding: 0.5rem;
+      }
+      .formula-box p { font-size: 0.9rem; }
+      
+      /* Tables - make scrollable */
+      .comparison-table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      table.comparison-table { 
+        min-width: 500px; 
+        font-size: 0.85rem;
+      }
+      table.comparison-table th, 
+      table.comparison-table td { 
+        padding: 0.5rem 0.75rem; 
+      }
+      
+      /* BibTeX */
+      .bibtex-box { padding: 1rem; }
+      .bibtex-box code { font-size: 0.7rem; }
+      
+      /* Publication links buttons */
+      .publication-links .button { 
+        font-size: 0.85rem;
+        padding: 0.4rem 0.8rem;
+      }
+      
+      /* Footer */
+      footer.footer { padding: 1.5rem 1rem; }
+      footer.footer img { height: 60px !important; }
+      footer p { font-size: 0.85rem; }
+      
+      /* TL;DR text */
+      .hero .hero-body p[style*="Castoro"] { font-size: 0.95rem !important; }
+    }
+    
+    /* Small phones */
+    @media (max-width: 480px) {
+      .hero .title.is-1 { font-size: 1.25rem; }
+      .hero .subtitle.is-4 { font-size: 0.9rem; }
+      .publication-authors { font-size: 0.8rem !important; }
+      
+      h2.title.is-3, .title.is-3.section-title { font-size: 1.25rem; }
+      
+      .content p, .content li { font-size: 1.05rem; }
+      
+      .math-box h4 { font-size: 1rem; }
+      .math-box p { font-size: 0.9rem; }
+      
+      .result-card { padding: 1rem; }
+      .result-card h4 { font-size: 1rem; }
+      
+      /* Conclusion box contributions */
+      .conclusion-box div[style*="grid"] p { font-size: 0.95rem !important; }
+      
+      /* Extra small formulas */
+      .formula-box p { font-size: 0.85rem; }
+      
+      /* Theorem boxes */
+      .result-card[style*="border-left"] { padding: 1rem; }
+      .result-card[style*="border-left"] h4 { font-size: 1rem; }
+      .result-card[style*="border-left"] div[style*="text-align: center"] { font-size: 0.9rem !important; }
+    }
+    
+    /* Result card theorem boxes mobile adjustments */
+    @media (max-width: 768px) {
+      .result-card div[style*="text-align: center"] {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+    }
+    
+    /* Ensure images never overflow */
+    img { max-width: 100%; height: auto; }
+    
+    /* Global overflow prevention */
+    .container { overflow-x: hidden; }
+    .content { word-wrap: break-word; overflow-wrap: break-word; }
+    
+    /* Algorithm box mobile */
+    @media (max-width: 768px) {
+      .algorithm-box { 
+        font-size: 0.75rem; 
+        padding: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="hero-body">
+    <div class="container is-max-widescreen has-text-centered">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+
+          <h1 class="title is-1 publication-title">PIPO: Policy Improvement Policy Optimization</h1>
+          
+          <div class="is-size-5 publication-authors">
+            <span class="author-block">Huaiyang Wang<sup>*,1</sup>,</span>
+            <span class="author-block">Xiaojie Li<sup>*,1</sup>,</span>
+            <span class="author-block">Deqing Wang<sup>1</sup>,</span>
+            <span class="author-block">Haoyi Zhou<sup>1</sup>,</span><br>
+            <span class="author-block">Zixuan Huang<sup>1</sup>,</span>
+            <span class="author-block">Yaodong Yang<sup>1</sup>,</span>
+            <span class="author-block">Jianxin Li<sup>1</sup>,</span>
+            <span class="author-block">Yikun Ban<sup>†,1</sup></span>
+          </div>
+
+          <div class="is-size-6 publication-authors" style="margin-top: 0.4rem;">
+            <span class="author-block"><sup>1</sup>Beihang University</span>
+            <span class="author-block" style="margin-left: 1rem;"><sup>*</sup>Equal Contribution</span>
+            <span class="author-block" style="margin-left: 1rem;"><sup>†</sup>Corresponding Author</span>
+          </div>
+
+          <div class="publication-links" style="margin-top: 0.8rem;">
+            <div class="publication-links">
+              <span class="link-block">
+                <a href="#" class="external-link button is-normal is-rounded">
+                  <span class="icon"><i class="ai ai-arxiv"></i></span>
+                  <span>arXiv (Coming Soon)</span>
+                </a>
+                <a href="#" class="external-link button is-normal is-rounded">
+                  <span class="icon"><i class="fab fa-github"></i></span>
+                  <span>Code (Coming Soon)</span>
+                </a>
+              </span>
+            </div>
+          </div>
+
+        <div style="margin-top: 1rem; text-align: center;">
+            <p style="font-family: 'Castoro', Georgia, serif; font-size: 1.05rem; color: #1f2937; line-height: 1.8;">
+              <strong>TL;DR:</strong> Standard group-based RL with verifiable rewards (e.g., GRPO) is fundamentally unstable on sparse 0/1 tasks because it optimizes surrogate rewards without verifying whether updates truly improve the policy. We introduce <strong>Policy Improvement Reinforcement Learning (PIRL)</strong> — a paradigm that directly optimizes inter-iteration policy improvement — and <strong>Policy Improvement Policy Optimization(PIPO)</strong>, a closed-loop algorithm that prevents mode collapse and achieves stable, continuous reasoning gains.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="padding-top: 1rem; padding-bottom: 2rem;">
+  <div class="container is-max-desktop">
+    <div class="figure-container" style="margin: 0;">
+      <center>
+        <img src="./static/images/fig_pirl.png" alt="PIRL Framework" style="max-width: 90%;">
+      </center>
+    </div>
+    <div class="figure-container" style="margin: 0;">
+      <center>
+        <img src="./static/images/fig_pipo.png" alt="PIPO Framework" style="max-width: 90%;">
+      </center>
+    </div>
+    
+    <p class="figure-caption" style="text-align: center; margin-top: 1.5rem;">
+      <strong>PIRL and PIPO Framework.</strong> <em>Top:</em> PIRL shifts from surrogate reward maximization to explicit inter-iteration improvement optimization. <em>Bottom:</em> PIPO dynamically reinforces improvements and suppresses regressions through a closed-loop dual-stage process.
+    </p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 section-title">The Hidden Instability of Group-Based RLVR</h2>
+    <div class="content">
+      <p>
+        Reinforcement Learning with Verifiable Rewards (RLVR) has become the dominant approach for training reasoning models. However, in environments with strictly <strong>0/1 reward distributions</strong> (like math reasoning), group-based methods rely on step-wise, intra-batch surrogate objectives that suffer from a fundamental flaw.
+      </p>
+
+      <div class="insight-box" style="background: #fef2f2; border-left: 4px solid var(--sage-red);">
+        <p style="font-weight: 600; color: var(--sage-red); margin-bottom: 0.5rem;">GRPO training often crashes in late stages.</p>
+        <ul style="margin: 0.5rem 0 0 1.5rem; line-height: 1.7;">
+          <li>Gradient norms explode</li>
+          <li>Accuracy suddenly collapses</li>
+          <li>Training becomes irrecoverably unstable</li>
+        </ul>
+      </div>
+
+      <div class="figure-container" style="margin-top: 2rem;">
+        <img src="./static/images/fig_comp.png" alt="GRPO Training Crash and PIPO Stabilization">
+        <p class="figure-caption">
+          <strong>The GRPO Training Crash.</strong> <em>Left:</em> As predicted by Corollary 1, standard GRPO suffers from unbounded gradient norm explosion during training on sparse-reward mathematical tasks. <em>Right:</em> This gradient explosion directly causes training to <strong>crash</strong>, leading to catastrophic accuracy drop (mode collapse). In stark contrast, <strong>GRPO+PIPO</strong> effectively bounds gradients and completely prevents the crash, sustaining steady accuracy improvements.
+        </p>
+      </div>
+
+      <p>
+        This is not an implementation artifact. We formally prove that GRPO's expected gradient exhibits severe scaling issues tied to the current success probability.
+      </p>
+
+      <div class="result-card" style="border-left: 4px solid var(--sage-red); padding: 1.5rem; margin: 2rem 0;">
+        <h4 style="color: var(--sage-red); margin-bottom: 0.8rem;">Theorem 1: GRPO Gradient Representation</h4>
+        <p style="margin-bottom: 1rem;">
+          The expected gradient of the GRPO objective can be expressed as a scaled version of the true RLVR gradient $g_{\text{true}}$, where the scaling factor $\eta(p_t)$ is intrinsically tied to the current pass rate $p_t$:
+        </p>
+        <div class="formula-box">
+          <p style="font-size: 1.1rem; margin: 0;">
+            $$ g_{\text{GRPO}} = \underbrace{\left( \frac{\mathbb{E}[\sqrt{S(G-S)} \mid \mathcal{S}]}{G \cdot p_t(1-p_t)} \right)}_{\eta(p_t)} \cdot g_{\text{true}} $$
+          </p>
+        </div>
+      </div>
+
+      <p>
+        When a prompt is either extremely easy or extremely difficult, the intra-group variance shrinks dramatically. Normalizing the advantages by this tiny standard deviation leads to a <strong>gradient sensitivity explosion</strong>. This behavior is formally captured by the following corollary:
+      </p>
+
+      <div class="result-card" style="border-left: 4px solid var(--sage-red); padding: 1.5rem; margin: 2rem 0;">
+        <h4 style="color: var(--sage-red); margin-bottom: 0.8rem;">Corollary 1: Asymptotic Gradient Explosion</h4>
+        <p style="margin-bottom: 1rem;">
+          The scaling factor $\eta(p_t)$ exhibits asymptotic explosion as the success probability approaches the extreme ends of the distribution:
+        </p>
+        <div class="formula-box">
+          <p style="font-size: 1.1rem; margin: 0;">
+            $$ \eta \big(p(q;\theta)\big) = O\!\left( \frac{1}{p(q;\theta)\big(1 - p(q;\theta)\big)} \right) $$
+          </p>
+        </div>
+        <p style="color: var(--text-muted); font-size: 1.05rem; margin-top: 1rem; margin-bottom: 0;">
+          <strong>Implication:</strong> As $p \to 0$ or $p \to 1$, the update magnitude diverges towards infinity, violently amplifying stochastic noise and driving the policy into severe instability (mode collapse).
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="background-color: var(--bg-gray);">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 section-title">Core Insight: Policy Improvement Reinforcement Learning (PIRL)</h2>
+    <div class="content">
+      <p>
+        To fundamentally address the instability and objective mismatch of step-wise surrogate functions, we propose a novel optimization paradigm: <strong>Policy Improvement Reinforcement Learning (PIRL)</strong>.
+      </p>
+
+      <div class="result-card" style="border-left: 4px solid var(--sage-blue); padding: 1.5rem; margin: 2rem 0; background: #eff6ff;">
+        <p style="font-weight: 600; margin-bottom: 0.8rem;">Paradigm Shift:</p>
+        <p style="margin-bottom: 0;">
+          Instead of maximizing proxy rewards within an isolated batch, we directly optimize <strong>inter-iteration policy improvement</strong>.
+        </p>
+      </div>
+
+      <div class="result-card" style="border-left: 4px solid var(--sage-blue); padding: 1.5rem; margin: 2rem 0;">
+        <h4 style="color: var(--sage-blue); margin-bottom: 0.8rem;">Definition 1: Inter-Iteration Policy Improvement</h4>
+        <p style="margin-bottom: 1rem;">
+          We formally define the policy improvement at step $t$ as the difference in the true RLVR objective between the current policy $\theta_t$ and the previous policy $\theta_{t-1}$:
+        </p>
+        <div class="formula-box">
+          <p style="font-size: 1.1rem; margin: 0;">
+            $$ \Delta J_t := J_{\mathrm{RLVR}}(\theta_t) - J_{\mathrm{RLVR}}(\theta_{t-1}) $$
+          </p>
+        </div>
+      </div>
+
+      <p>
+        By focusing on $\Delta J_t$, PIRL inherently anchors the optimization to a historical baseline, transforming the problem into actively verifying whether the latest update actually yielded a better policy. This simple shift eliminates the intrinsic instability of group-normalized objectives. By anchoring optimization to a historical baseline, we:
+      </p>
+      <ul style="line-height: 1.8;">
+        <li>Control variance</li>
+        <li>Avoid geometric bias</li>
+        <li>Prevent extreme gradient amplification</li>
+        <li>Ensure monotonic improvement in expectation</li>
+      </ul>
+
+      <div class="result-card" style="border-left: 4px solid var(--sage-blue); padding: 1.5rem; margin: 2rem 0;">
+        <h4 style="color: var(--sage-blue); margin-bottom: 0.8rem;">Theorem 2: Equivalence of PIRL and RLVR</h4>
+        <p style="margin-bottom: 1rem;">
+          Maximizing the cumulative expected policy improvements over $T$ steps is mathematically equivalent to maximizing the final RLVR objective:
+        </p>
+        <div class="formula-box">
+          <p style="font-size: 1.1rem; margin: 0;">
+            $$ \arg\max_{\{\theta_t\}_{t=1}^T} \sum_{t=1}^T \mathbb{E}\!\left[ \Delta J_t \right] \;=\; \arg\max_{\theta_T} J_{\mathrm{RLVR}}(\theta_T) $$
+          </p>
+        </div>
+        <p style="color: var(--text-muted); font-size: 1.05rem; margin-top: 1rem; margin-bottom: 0;">
+          <strong>Significance:</strong> This theorem ensures that optimizing the relative step-by-step improvement $\Delta J_t$ does not alter the global optimal policy. We do not change the global optimum — we only change the optimization trajectory to be more stable.
+        </p>
+      </div>
+      
+    </div>
+  </div>
+</section>
+
+<section class="section section-white">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 section-title">PIPO: A Closed-Loop Realization of PIRL</h2>
+    
+    <div class="content has-text-justified">
+      <p>
+        To practically instantiate the PIRL paradigm, we introduce <strong>Policy Improvement Policy Optimization (PIPO)</strong>. At its core is the <strong>PIPO Reward ($\hat{r}^{\mathrm{PI}}$)</strong>, which has been theoretically proven to satisfy Policy Improvement RL (PIRL) properties.
+      </p>
+
+      <p>
+        To approximate the objective in a stable manner, we maintain a sliding-window memory $\mathcal{T}_{\mathrm{sw}} \subset \{t-K,\dots,t-1\}$ of size $K$, and define the historical baseline statistics (mean and standard deviation):
+      </p>
+      <div class="formula-box">
+        <p style="font-size: 1rem; margin: 0; text-align: center;">
+          $$ \mu_{\mathrm{his}} = \frac{1}{K} \sum_{\tau \in \mathcal{T}_{\mathrm{sw}}} \mu_\tau, \qquad \sigma_{\mathrm{his}} = \sqrt{ \frac{1}{K-1} \sum_{\tau \in \mathcal{T}_{\mathrm{sw}}} (\mu_\tau - \mu_{\mathrm{his}})^2 } $$
+        </p>
+      </div>
+
+      <p style="margin-top: 1.5rem;">
+        Equipped with these statistics, we construct the standardized <strong>PI-Reward</strong> by multiplying a local advantage attribution with a global verification term:
+      </p>
+      <div class="formula-box">
+        <p style="font-size: 1rem; margin: 0; text-align: center;">
+          $$ \hat{r}^{\mathrm{PI}}_{t,i} = \underbrace{ \frac{G \cdot A(y_{t-1,i})} {\sum_{j=1}^G \lvert A(y_{t-1,j}) \rvert} }_{\text{local attribution}} \;\cdot\; \underbrace{\phi \left(\frac{\mu_t - \mu_{\mathrm{his}}}{\sigma_{\mathrm{his}}} \right)}_{\text{global verification}} $$
+        </p>
+      </div>
+
+      <h4 class="subsection-title" style="margin-top: 2rem;">Dual-Stage Optimization Process</h4>
+      <p>
+        Using the constructed PI-Reward, the PIPO framework executes a closed-loop dual-stage optimization process:
+      </p>
+      
+      <div class="math-comparison">
+        <div class="math-box" style="border-top: 3px solid #6b7280; background: #fef2f2;">
+          <h4 style="text-align: center; color: #4b5563;">Stage 1: PI Meta-Update</h4>
+          <p style="margin-top: 1rem;">
+            Using the previous batch $\mathcal{B}_{t-1}$ retrieved from memory, we perform a meta-update on the current policy $\theta_t$ to obtain the transition parameters $\theta'$:
+          </p>
+          <p style="text-align: center; margin-top: 1rem;">
+            $$ 
+            \begin{aligned}
+            \mathcal{J}_{\mathrm{PI}} &= \frac{1}{G} \sum_{i=1}^G \min\!\Big( \nu_i \hat r^{\mathrm{PI}}_{t,i},\; \mathrm{clip}(\nu_i, 1-\epsilon, 1+\epsilon)\hat r^{\mathrm{PI}}_{t,i} \Big) \\
+            \theta' &\leftarrow \theta_t + \alpha_{\mathrm{PI}} \cdot \nabla_\theta \mathcal{J}_{\mathrm{PI}}(\theta_t;\mathcal{B}_{t-1})
+            \end{aligned}
+            $$
+          </p>
+          <p style="margin-top: 1rem; line-height: 1.6;">
+            where $\nu_i$ is the importance sampling ratio. Updates that empirically improve performance are reinforced, while regressions are actively suppressed.
+          </p>
+        </div>
+        
+        <div class="math-box" style="border-top: 3px solid #6b7280; background: #eff6ff;">
+          <h4 style="text-align: center; color: #4b5563;">Stage 2: Standard Update</h4>
+          <p style="margin-top: 1rem;">
+            To preserve responsiveness to new data and ensure continuous exploration, PIPO subsequently performs a standard group-based update on the newly generated batch $\mathcal{B}_t$. This step is applied directly on top of the transition parameters $\theta'$:
+          </p>
+          <p style="text-align: center; margin-top: 1rem;">
+            $$ 
+            \theta_{t+1} \leftarrow \theta' + \alpha_{\mathrm{std}} \cdot \nabla_\theta \mathcal{J}_{\mathrm{group}}(\theta';\mathcal{B}_t)
+            $$
+          </p>
+        </div>
+      </div>
+
+      <div class="insight-box" style="margin-top: 2rem; background: #fafafa; border-left: 4px solid var(--primary);">
+        <p style="font-weight: 600; margin-bottom: 0.8rem;">Why PIPO Works</p>
+        <p style="margin-bottom: 0;">
+          This forms a closed-loop training system that explicitly verifies policy improvement. The dual-stage process ensures both stability (through retrospective correction) and exploration (through standard updates), fundamentally changing the question from <em>"Did samples in this batch receive reward?"</em> to <em>"Did the policy actually become better than before?"</em>
+        </p>
+      </div>
+
+      <div class="figure-container" style="margin-top: 2.5rem;">
+        <center><img src="./static/images/fig_algo.png" alt="PIPO Framework Algorithm" style="max-width: 50%; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);"></center>
+        <p class="figure-caption" style="margin-top: 0.8rem;">
+          <strong>PIPO Framework Algorithm.</strong> The complete pseudocode showing the dual-stage optimization process with retrospective correction mechanism.
+        </p>
+      </div>
+      
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 section-title">Experiments</h2>
+    
+    <div class="content has-text-justified">
+      <h4 class="subsection-title">Main Results</h4>
+      <p>
+        PIPO is a plug-and-play framework. We integrate it atop state-of-the-art group-based RL baselines (GRPO, GSPO, and DAPO) across Qwen3-4B and 8B model scales. Our math benchmarks include MATH500, AIME2025, AMC23, and MINERVA.
+      </p>
+    </div>
+    
+    <div class="figure-container">
+      <center><img src="./static/images/fig_table1.png" alt="Main Results on Mathematical Reasoning" style="max-width: 100%;"></center>
+      <p class="figure-caption">
+        <strong>Main Results on Mathematical Reasoning.</strong> PIPO consistently improves the performance of group-based RL algorithms across all benchmarks and model scales. Observations: consistent accuracy gains, elimination of late-stage degradation, higher sample efficiency, and faster wall-clock convergence despite small per-step overhead.
+      </p>
+    </div>
+
+    <div class="figure-container">
+      <center><img src="./static/images/fig_main.png" alt="Training Dynamics" style="max-width: 90%;"></center>
+      <p class="figure-caption">
+        <strong>Training Dynamics.</strong> PIPO outperforms on accuracy and response length across training steps.
+      </p>
+    </div>
+
+    <div class="content has-text-justified">
+      <h4 class="subsection-title">Generalization Beyond Math</h4>
+      <p>
+        We evaluate PIPO on SciKnowEval to assess its performance on knowledge-rich and logic-intensive subjects across Physics, Biology, Chemistry, and Material Science.
+      </p>
+    </div>
+    
+    <div class="figure-container">
+      <center><img src="./static/images/fig_table2.png" alt="SciKnowEval Results" style="max-width: 70%;"></center>
+      <p class="figure-caption">
+        <strong>Generalization Results.</strong> PIPO enhances complex reasoning capability beyond math datasets, demonstrating that improvement verification is a general alignment principle — not task-specific tuning.
+      </p>
+    </div>
+
+    <div class="content has-text-justified">
+      <h4 class="subsection-title">Ablation Studies</h4>
+      <p>
+        We investigate the sensitivity of PIPO to its core design choices: the historical window size ($K$) and the rectification strategy ($\phi$).
+      </p>
+    </div>
+    
+    <div class="math-comparison">
+      <div class="math-box" style="border-top: 3px solid #6b7280;">
+        <h4 style="text-align: center; color: #4b5563;">Historical Window Size ($K$)</h4>
+        <center><img src="./static/images/fig_table3.png" alt="Ablation on Window Size" style="width: 100%; margin-top: 1rem;"></center>
+        <p style="font-size: 0.9rem; margin-top: 1rem; line-height: 1.6;">
+          Smaller windows yield higher peak performance but high variance, whereas larger windows underestimate rapid improvement. $K=8$ achieves the optimal balance between rapid adaptation and stable estimation.
+        </p>
+      </div>
+      
+      <div class="math-box" style="border-top: 3px solid #6b7280;">
+        <h4 style="text-align: center; color: #4b5563;">Rectification Strategy ($\phi$)</h4>
+        <center><img src="./static/images/fig_table4.png" alt="Ablation on Rectification" style="width: 100%; margin-top: 1rem;"></center>
+        <p style="font-size: 0.9rem; margin-top: 1rem; line-height: 1.6;">
+          The Unidirectional setting ([0, 0.5]) yields the best performance. Explicitly penalizing negative improvement signals (bidirectional) can introduce additional instability in sparse-reward tasks.
+        </p>
+      </div>
+    </div>
+
+    <div class="content has-text-justified">
+      <h4 class="subsection-title">Computational Efficiency</h4>
+      <p>
+        PIPO introduces a retrospective pass, adding modest computational overhead per step. However, owing to highly stabilized gradients and avoidance of destructive updates, PIPO achieves significantly higher sample efficiency and faster wall-clock convergence.
+      </p>
+    </div>
+    
+    <div class="figure-container">
+      <center><img src="./static/images/fig_time.png" alt="Training Efficiency" style="max-width: 80%;"></center>
+      <p class="figure-caption">
+        <strong>Training Efficiency Analysis.</strong> PIPO adds 12.0% to 19.3% computational overhead per step. Despite this, PIPO achieves target accuracies in significantly less total wall-clock time compared to standard GRPO, proving its practical efficiency for large-scale training.
+      </p>
+    </div>
+
+  </div>
+</section>
+
+
+
+<section class="section">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 section-title">Conclusion</h2>
+    
+    <div class="content">
+      <p>
+        In this work, we address a fundamental limitation of existing Reinforcement Learning with Verifiable Rewards (RLVR): optimization relies on step-wise advantage signals without explicitly verifying whether updates yield genuine policy improvement over time. This objective mismatch causes severe gradient sensitivity explosion and mode collapse in sparse-reward reasoning tasks.
+      </p>
+      
+      <p>
+        To address this, we introduce <strong>PIRL (Policy Improvement Reinforcement Learning)</strong>, which reframes post-training as the maximization of expected inter-iteration performance gains. We further propose <strong>PIPO (Policy Improvement Policy Optimization)</strong>, a closed-loop framework that operationalizes PIRL through a retrospective verification mechanism.
+      </p>
+
+      <div class="conclusion-box" style="margin-top: 2rem; background-color: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 2rem;">
+        <p style="font-weight: 600; font-size: 1.1rem; margin-bottom: 1.2rem; color: var(--text-dark);">Key Contributions:</p>
+        
+        <ul style="margin-top: 0; margin-bottom: 1.8rem; line-height: 1.7;">
+          <li style="margin-bottom: 0.8rem;">
+            <strong>Novel Paradigm (PIRL):</strong> Shifts the RLVR objective from maximizing step-wise surrogate rewards to explicitly optimizing expected inter-iteration policy improvement.
+          </li>
+          <li style="margin-bottom: 0.8rem;">
+            <strong>PIPO Framework:</strong> A closed-loop algorithm that uses a parameter-free PI-Reward and a historical baseline to retrospectively gate and rectify policy updates.
+          </li>
+          <li style="margin-bottom: 0.8rem;">
+            <strong>Theoretical Guarantees:</strong> We theoretically prove that PIPO ascends the PIRL objective in expectation and mitigates the geometric bias inherent in group-normalized estimators.
+          </li>
+          <li>
+            <strong>State-of-the-Art Results:</strong> Consistently improves standard group-based RL baselines across model scales and reasoning benchmarks, yielding higher accuracy, more stable training, and deeper reasoning.
+          </li>
+        </ul>
+        
+        <p style="margin-bottom: 0; color: #374151;">
+          PIPO provides a highly stable and effective alignment strategy, demonstrating that explicitly verifying policy improvement can fundamentally resolve the instability of standard group-based RL algorithms and robustly sustain the growth of reasoning chains.
+        </p>
+      </div>
+      
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container has-text-centered">
+    <p>
+      <strong>PIPO: Policy Improvement Policy Optimization</strong><br>
+      KDD 2026 Submission
+    </p>
+    <p style="font-size: 0.85rem; margin-top: 1rem;">
+      Template adapted from <a href="https://github.com/nerfies/nerfies.github.io" target="_blank">Nerfies</a>.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>
