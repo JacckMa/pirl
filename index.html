@@ -531,12 +531,12 @@
   <div class="container is-max-desktop">
     <div class="figure-container" style="margin: 0;">
       <center>
-        <img src="./static/images/fig_pirl.png" alt="PIRL Framework" style="max-width: 90%;">
+        <img src="./static/images/fig_pirl.png" alt="PIRL Framework" style="max-width: 70%;">
       </center>
     </div>
     <div class="figure-container" style="margin: 0;">
       <center>
-        <img src="./static/images/fig_pipo.png" alt="PIPO Framework" style="max-width: 90%;">
+        <img src="./static/images/fig_pipo.png" alt="PIPO Framework" style="max-width: 70%;">
       </center>
     </div>
     
@@ -564,7 +564,7 @@
       </div>
 
       <div class="figure-container" style="margin-top: 2rem;">
-        <img src="./static/images/fig_comp.png" alt="GRPO Training Crash and PIPO Stabilization">
+        <center><img src="./static/images/fig_comp.png" alt="GRPO Training Crash and PIPO Stabilization" style="max-width: 70%;"></center>
         <p class="figure-caption">
           <strong>The GRPO Training Crash.</strong> <em>Left:</em> As predicted by Corollary 1, standard GRPO suffers from unbounded gradient norm explosion during training on sparse-reward mathematical tasks. <em>Right:</em> This gradient explosion directly causes training to <strong>crash</strong>, leading to catastrophic accuracy drop (mode collapse). In stark contrast, <strong>GRPO+PIPO</strong> effectively bounds gradients and completely prevents the crash, sustaining steady accuracy improvements.
         </p>
@@ -736,7 +736,7 @@
       </div>
 
       <div class="figure-container" style="margin-top: 2.5rem;">
-        <center><img src="./static/images/fig_algo.png" alt="PIPO Framework Algorithm" style="max-width: 50%; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);"></center>
+        <center><img src="./static/images/fig_algo.png" alt="PIPO Framework Algorithm" style="max-width: 70%; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);"></center>
         <p class="figure-caption" style="margin-top: 0.8rem;">
           <strong>PIPO Framework Algorithm.</strong> The complete pseudocode showing the dual-stage optimization process with retrospective correction mechanism.
         </p>
@@ -758,14 +758,14 @@
     </div>
     
     <div class="figure-container">
-      <center><img src="./static/images/fig_table1.png" alt="Main Results on Mathematical Reasoning" style="max-width: 100%;"></center>
+      <center><img src="./static/images/fig_table1.png" alt="Main Results on Mathematical Reasoning" style="max-width: 70%;"></center>
       <p class="figure-caption">
         <strong>Main Results on Mathematical Reasoning.</strong> PIPO consistently improves the performance of group-based RL algorithms across all benchmarks and model scales. Observations: consistent accuracy gains, elimination of late-stage degradation, higher sample efficiency, and faster wall-clock convergence despite small per-step overhead.
       </p>
     </div>
 
     <div class="figure-container">
-      <center><img src="./static/images/fig_main.png" alt="Training Dynamics" style="max-width: 90%;"></center>
+      <center><img src="./static/images/fig_main.png" alt="Training Dynamics" style="max-width: 70%;"></center>
       <p class="figure-caption">
         <strong>Training Dynamics.</strong> PIPO outperforms on accuracy and response length across training steps.
       </p>
@@ -818,7 +818,7 @@
     </div>
     
     <div class="figure-container">
-      <center><img src="./static/images/fig_time.png" alt="Training Efficiency" style="max-width: 80%;"></center>
+      <center><img src="./static/images/fig_time.png" alt="Training Efficiency" style="max-width: 70%;"></center>
       <p class="figure-caption">
         <strong>Training Efficiency Analysis.</strong> PIPO adds 12.0% to 19.3% computational overhead per step. Despite this, PIPO achieves target accuracies in significantly less total wall-clock time compared to standard GRPO, proving its practical efficiency for large-scale training.
       </p>
