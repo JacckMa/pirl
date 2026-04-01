@@ -4,9 +4,8 @@
   <meta charset="utf-8">
   <meta name="description"
         content="Policy Improvement Reinforcement Learning - Stabilizing RLVR via Retrospective Verification for Large Language Models">
-  <meta name="keywords" content="LLM, Reasoning, Reinforcement Learning, RLVR, GRPO, PIPO">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PIPO: Policy Improvement Policy Optimization</title>
+  <title>Policy Improvement Reinforcement Learning</title>
 
   <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
@@ -482,7 +481,7 @@
       <div class="columns is-centered">
         <div class="column has-text-centered">
 
-          <h1 class="title is-1 publication-title">PIPO: Policy Improvement Policy Optimization</h1>
+          <h1 class="title is-1 publication-title">Policy Improvement Reinforcement Learning</h1>
           
           <div class="is-size-5 publication-authors">
             <span class="author-block">Huaiyang Wang<sup>*,1</sup>,</span>
@@ -490,13 +489,14 @@
             <span class="author-block">Deqing Wang<sup>1</sup>,</span>
             <span class="author-block">Haoyi Zhou<sup>1</sup>,</span><br>
             <span class="author-block">Zixuan Huang<sup>1</sup>,</span>
-            <span class="author-block">Yaodong Yang<sup>1</sup>,</span>
+            <span class="author-block">Yaodong Yang<sup>2</sup>,</span>
             <span class="author-block">Jianxin Li<sup>1</sup>,</span>
             <span class="author-block">Yikun Ban<sup>†,1</sup></span>
           </div>
 
           <div class="is-size-6 publication-authors" style="margin-top: 0.4rem;">
             <span class="author-block"><sup>1</sup>Beihang University</span>
+            <span class="author-block" style="margin-left: 1rem;"><sup>2</sup>Peking University</span>
             <span class="author-block" style="margin-left: 1rem;"><sup>*</sup>Equal Contribution</span>
             <span class="author-block" style="margin-left: 1rem;"><sup>†</sup>Corresponding Author</span>
           </div>
@@ -518,7 +518,7 @@
 
         <div style="margin-top: 1rem; text-align: center;">
             <p style="font-family: 'Castoro', Georgia, serif; font-size: 1.05rem; color: #1f2937; line-height: 1.8;">
-              <strong>TL;DR:</strong> Standard group-based RL with verifiable rewards (e.g., GRPO) is fundamentally unstable on sparse 0/1 tasks because it optimizes surrogate rewards without verifying whether updates truly improve the policy. We introduce <strong>Policy Improvement Reinforcement Learning (PIRL)</strong> — a paradigm that directly optimizes inter-iteration policy improvement — and <strong>Policy Improvement Policy Optimization(PIPO)</strong>, a closed-loop algorithm that prevents mode collapse and achieves stable, continuous reasoning gains.
+              <strong>TL;DR:</strong> Traditional RLVR methods follow an <en>open-loop</em> design that optimizes policies based on instantaneous batch-level statistics without verifying if the update actually improves the model. We introduce <strong>Policy Improvement Reinforcement Learning (PIRL)</strong> — a paradigm that reframes optimization as the maximization of cumulative, inter-iteration performance gains — and <strong>Policy Improvement Policy Optimization(PIPO)</strong>, a <em>closed-loop</em> algorithm that retrospectively reinforces beneficial updates and suppresses harmful ones, significantly enhancing training stability and reasoning accuracy.
             </p>
           </div>
         </div>
@@ -531,24 +531,39 @@
   <div class="container is-max-desktop">
     <div class="figure-container" style="margin: 0;">
       <center>
-        <img src="./static/images/fig_pirl.png" alt="PIRL Framework" style="max-width: 70%;">
-      </center>
-    </div>
-    <div class="figure-container" style="margin: 0;">
-      <center>
-        <img src="./static/images/fig_pipo.png" alt="PIPO Framework" style="max-width: 70%;">
+        <img src="./static/images/pipo_vs_grpo.png" alt="PIRL Framework" style="max-width: 99%;">
       </center>
     </div>
     
-    <p class="figure-caption" style="text-align: center; margin-top: 1.5rem;">
-      <strong>PIRL and PIPO Framework.</strong> <em>Top:</em> PIRL shifts from surrogate reward maximization to explicit inter-iteration improvement optimization. <em>Bottom:</em> PIPO dynamically reinforces improvements and suppresses regressions through a closed-loop dual-stage process.
+    <p class="figure-caption" style="text-align: center; margin-top: 0.3rem;">
+      <strong>Overview of Policy Improvement Reinforcement Learning (PIRL) framework.</strong>
+      <em>Left</em>: Traditional RLVR methods follow an open-loop paradigm, updating policies from instantaneous rewards without verifying actual improvement.
+      <em>Middle</em>: PIRL introduces a verification stage, forming a closed-loop optimization driven by policy improvement signals. 
+      <em>Right</em>: During verification, positive signals are amplified, while negative signals trigger rectification to stabilize training.
     </p>
   </div>
 </section>
 
 <section class="section">
   <div class="container is-max-desktop">
-    <h2 class="title is-3 section-title">The Hidden Instability of Group-Based RLVR</h2>
+    <h2 class="title is-3 section-title">Abstract</h2>
+    <div class="content">
+      <p>
+        Reinforcement Learning with Verifiable Rewards has become a central post-training paradigm for improving the reasoning capabilities of large language models. Yet existing methods share a common blind spot: they optimize policies based on instantaneous group-level or batch-level statistics without ever verifying whether the resulting update actually improved the model. This <strong>open-loop design</strong> — updating in isolation at each step, guided only by within-group (batch) reward signals — means optimization can drift or collapse with no mechanism to detect and correct these failures.
+      </p>
+      <p>
+        We argue that the missing ingredient is <strong>policy improvement feedback</strong>: the ability to measure and optimize inter-iteration progress directly. To this end, we introduce <strong>Policy Improvement Reinforcement Learning (PIRL)</strong>, a framework that replaces surrogate reward maximization with the explicit objective of maximizing cumulative policy improvement across iterations, and prove this temporal objective is perfectly aligned with maximizing final task performance.
+      </p>
+      <p>
+        Building on PIRL, we propose <strong>Policy Improvement Policy Optimization (PIPO)</strong>, which implements <strong>closed-loop optimization</strong> through retrospective verification. At each iteration, PIPO evaluates whether the previous update yielded genuine improvement against a sliding-window historical baseline, then actively reinforces beneficial updates and suppresses the harmful ones — transforming an open-loop process into a <strong>self-correcting one</strong>. We provide theoretical analysis showing that PIPO performs ascent on the PIRL objective in expectation, and experiments on mathematical reasoning benchmarks demonstrate <strong>improved stability and performance</strong> over GRPO and its variants.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 section-title">The Vulnerability of Group-Based RLVR</h2>
     <div class="content">
       <p>
         Reinforcement Learning with Verifiable Rewards (RLVR) has become the dominant approach for training reasoning models. However, in environments with strictly <strong>0/1 reward distributions</strong> (like math reasoning), group-based methods rely on step-wise, intra-batch surrogate objectives that suffer from a fundamental flaw.
@@ -564,9 +579,9 @@
       </div>
 
       <div class="figure-container" style="margin-top: 2rem;">
-        <center><img src="./static/images/fig_comp.png" alt="GRPO Training Crash and PIPO Stabilization" style="max-width: 70%;"></center>
+        <center><img src="./static/images/explosion.png" alt="GRPO Training Crash and PIPO Stabilization" style="max-width: 97%;"></center>
         <p class="figure-caption">
-          <strong>The GRPO Training Crash.</strong> <em>Left:</em> As predicted by Corollary 1, standard GRPO suffers from unbounded gradient norm explosion during training on sparse-reward mathematical tasks. <em>Right:</em> This gradient explosion directly causes training to <strong>crash</strong>, leading to catastrophic accuracy drop (mode collapse). In stark contrast, <strong>GRPO+PIPO</strong> effectively bounds gradients and completely prevents the crash, sustaining steady accuracy improvements.
+          <strong>Theoretical distortion and empirical instability of GRPO.</strong> <em>Left:</em> As predicted by Corollary 1, standard GRPO exhibit severe sensitivity explosion at the boundaries ($p_t \to 0, 1$). <em>Right:</em> Standard GRPO suffers from drastic gradient norm spikes and severe Pass@1 collapse. Incorporating PIPO effectively stabilizes training.
         </p>
       </div>
 
@@ -575,13 +590,13 @@
       </p>
 
       <div class="result-card" style="border-left: 4px solid var(--sage-red); padding: 1.5rem; margin: 2rem 0;">
-        <h4 style="color: var(--sage-red); margin-bottom: 0.8rem;">Theorem 1: GRPO Gradient Representation</h4>
+        <h4 style="color: var(--sage-red); margin-bottom: 0.8rem;">Theorem 1: Gradient Distortion</h4>
         <p style="margin-bottom: 1rem;">
-          The expected gradient of the GRPO objective can be expressed as a scaled version of the true RLVR gradient $g_{\text{true}}$, where the scaling factor $\eta(p_t)$ is intrinsically tied to the current pass rate $p_t$:
+          Let $ p(q;\theta) = \mathbb{E}_{y \sim \pi_\theta(\cdot \mid q)}[R(q,y)] $ denote the policy success rate, the expected gradient of GRPO can be expressed as a scaled one of the ideal RLVR gradient $g_{\text{ideal}}$, where the scaling factor $\eta(p_t)$ is intrinsically tied to $p_t$:
         </p>
         <div class="formula-box">
           <p style="font-size: 1.1rem; margin: 0;">
-            $$ g_{\text{GRPO}} = \underbrace{\left( \frac{\mathbb{E}[\sqrt{S(G-S)} \mid \mathcal{S}]}{G \cdot p_t(1-p_t)} \right)}_{\eta(p_t)} \cdot g_{\text{true}} $$
+            $$ g_{\text{GRPO}} = \underbrace{\frac{\sum_{k=1}^{G-1}\sqrt{k(G-k)}\binom{G}{k}p^k (1-p)^{G-k}}{G\,p(1-p)\left(1 - p^G - (1-p)^G\right)}.}_{\eta(p_t)} \cdot g_{\text{ideal}} $$
           </p>
         </div>
       </div>
@@ -591,13 +606,13 @@
       </p>
 
       <div class="result-card" style="border-left: 4px solid var(--sage-red); padding: 1.5rem; margin: 2rem 0;">
-        <h4 style="color: var(--sage-red); margin-bottom: 0.8rem;">Corollary 1: Asymptotic Gradient Explosion</h4>
+        <h4 style="color: var(--sage-red); margin-bottom: 0.8rem;">Corollary 1: Sensitivity Explosion</h4>
         <p style="margin-bottom: 1rem;">
-          The scaling factor $\eta(p_t)$ exhibits asymptotic explosion as the success probability approaches the extreme ends of the distribution:
+          At the probability boundaries ($p \to 0$ or $p \to 1$), the scaling factor $\eta(p_t)$ exhibits a symmetric singularity and diverges to infinity:
         </p>
         <div class="formula-box">
           <p style="font-size: 1.1rem; margin: 0;">
-            $$ \eta \big(p(q;\theta)\big) = O\!\left( \frac{1}{p(q;\theta)\big(1 - p(q;\theta)\big)} \right) $$
+            $$ \eta(p) \sim \frac{\sqrt{G-1}}{G \cdot p(1 - p)} \longrightarrow \infty. $$
           </p>
         </div>
         <p style="color: var(--text-muted); font-size: 1.05rem; margin-top: 1rem; margin-bottom: 0;">
@@ -624,9 +639,9 @@
       </div>
 
       <div class="result-card" style="border-left: 4px solid var(--sage-blue); padding: 1.5rem; margin: 2rem 0;">
-        <h4 style="color: var(--sage-blue); margin-bottom: 0.8rem;">Definition 1: Inter-Iteration Policy Improvement</h4>
+        <h4 style="color: var(--sage-blue); margin-bottom: 0.8rem;">Definition 1: Policy Improvement</h4>
         <p style="margin-bottom: 1rem;">
-          We formally define the policy improvement at step $t$ as the difference in the true RLVR objective between the current policy $\theta_t$ and the previous policy $\theta_{t-1}$:
+          We formally define the policy improvement at step $t$ as the difference in the ideal RLVR objective between the current policy $\theta_t$ and the previous policy $\theta_{t-1}$:
         </p>
         <div class="formula-box">
           <p style="font-size: 1.1rem; margin: 0;">
@@ -753,35 +768,35 @@
     <div class="content has-text-justified">
       <h4 class="subsection-title">Main Results</h4>
       <p>
-        PIPO is a plug-and-play framework. We integrate it atop state-of-the-art group-based RL baselines (GRPO, GSPO, and DAPO) across Qwen3-4B and 8B model scales. Our math benchmarks include MATH500, AIME2025, AMC23, and MINERVA.
+        PIPO is a plug-and-play framework. We integrate it atop standard group-based RL baselines (GRPO, GSPO, and DAPO) across Qwen3-4B-Base and Qwen3-8B-Base. Our math benchmarks include MATH500, AIME2025, AMC23, and MINERVA.
       </p>
     </div>
     
     <div class="figure-container">
-      <center><img src="./static/images/fig_table1.png" alt="Main Results on Mathematical Reasoning" style="max-width: 70%;"></center>
+      <center><img src="./static/images/fig_table1.png" alt="Main Results on Mathematical Reasoning" style="max-width: 85%;"></center>
       <p class="figure-caption">
         <strong>Main Results on Mathematical Reasoning.</strong> PIPO consistently improves the performance of group-based RL algorithms across all benchmarks and model scales. Observations: consistent accuracy gains, elimination of late-stage degradation, higher sample efficiency, and faster wall-clock convergence despite small per-step overhead.
       </p>
     </div>
 
     <div class="figure-container">
-      <center><img src="./static/images/fig_main.png" alt="Training Dynamics" style="max-width: 70%;"></center>
+      <center><img src="./static/images/fig_main.png" alt="Training Dynamics" style="max-width: 88%;"></center>
       <p class="figure-caption">
         <strong>Training Dynamics.</strong> PIPO outperforms on accuracy and response length across training steps.
       </p>
     </div>
 
     <div class="content has-text-justified">
-      <h4 class="subsection-title">Generalization Beyond Math</h4>
+      <h4 class="subsection-title">Ability Beyond Math</h4>
       <p>
-        We evaluate PIPO on SciKnowEval to assess its performance on knowledge-rich and logic-intensive subjects across Physics, Biology, Chemistry, and Material Science.
+        We evaluate PIPO with Qwen3-4B-Base on SciKnowEval to assess its performance on knowledge-rich and logic-intensive subjects across Physics, Biology, Chemistry, and Material Science.
       </p>
     </div>
     
     <div class="figure-container">
       <center><img src="./static/images/fig_table2.png" alt="SciKnowEval Results" style="max-width: 70%;"></center>
       <p class="figure-caption">
-        <strong>Generalization Results.</strong> PIPO enhances complex reasoning capability beyond math datasets, demonstrating that improvement verification is a general alignment principle — not task-specific tuning.
+        <strong>SciKnowEval Results.</strong> PIPO enhances complex reasoning capability beyond math datasets, demonstrating that improvement verification is a general alignment principle — not task-specific tuning.
       </p>
     </div>
 
@@ -820,7 +835,7 @@
     <div class="figure-container">
       <center><img src="./static/images/fig_time.png" alt="Training Efficiency" style="max-width: 70%;"></center>
       <p class="figure-caption">
-        <strong>Training Efficiency Analysis.</strong> PIPO adds 12.0% to 19.3% computational overhead per step. Despite this, PIPO achieves target accuracies in significantly less total wall-clock time compared to standard GRPO, proving its practical efficiency for large-scale training.
+        <strong>Training Efficiency Analysis.</strong> PIPO adds 12.0% to 19.3% computational overhead per step. Despite this, PIPO achieves target accuracies in significantly less total wall-clock time compared to standard GRPO, proving its practical efficiency.
       </p>
     </div>
 
@@ -869,15 +884,34 @@
   </div>
 </section>
 
+<section class="section section-white" style="padding-top: 2rem; padding-bottom: 2rem;">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 section-title">BibTeX</h2>
+    
+    <div class="content has-text-justified">
+      <div class="bibtex-box">
+        <pre><code>
+          @article{let's wait and see,
+            title={1},
+            author={2},
+            journal={3},
+            year={2026}
+          }
+        </code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
 <footer class="footer">
-  <div class="container has-text-centered">
-    <p>
-      <strong>PIPO: Policy Improvement Policy Optimization</strong><br>
-      KDD 2026 Submission
-    </p>
-    <p style="font-size: 0.85rem; margin-top: 1rem;">
-      Template adapted from <a href="https://github.com/nerfies/nerfies.github.io" target="_blank">Nerfies</a>.
-    </p>
+  <div class="container is-max-desktop">
+    <div class="columns">
+      <div class="column is-8">
+        <p style="margin-bottom: 0;">
+          &copy; 2026 Beihang University & Peking University. All rights reserved.
+        </p>
+      </div>
+    </div>
   </div>
 </footer>
 

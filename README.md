@@ -1,1 +1,1 @@
-PIPO
+Policy Improvement Reinforcement Learning(PIRL) paper's Github Page. Template adapted from [Nerfies](https://github.com/nerfies/nerfies.github.io).
