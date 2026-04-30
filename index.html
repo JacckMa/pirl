@@ -618,7 +618,7 @@
           </p>
         </div>
         <p style="color: var(--text-muted); font-size: 1.05rem; margin-top: 1rem; margin-bottom: 0;">
-          <strong>The Takeaway:</strong> As the model masters a task ($p \to 1$) or struggles with a hard one ($p \to 0$), the update magnitude uncontrollably diverges. This violently amplifies stochastic noise over genuine learning signals, inevitably driving the policy into mode collapse.
+          <strong>The Takeaway:</strong> As the model masters a task ($p \to 1$) or struggles with a hard one ($p \to 0$), the update magnitude uncontrollably diverges. This violently amplifies stochastic noise over genuine learning signals, inevitably driving the policy into training instability.
         </p>
       </div>
     </div>
@@ -713,7 +713,7 @@
         </p>
         <div class="formula-box">
           <p style="font-size: 1.1rem; margin: 0;">
-            $$ \hat{r}^{\mathrm{PI}}_{t,i} := \underbrace{ \frac{G \cdot A(y_{t-1,i})} {\sum_{j=1}^G \lvert A(y_{t-1,j}) \rvert} }_{\text{Local Attribution}} \;\cdot\; \underbrace{\phi \left(\frac{\mu_t - \mu_{\mathrm{his}}}{\sigma_{\mathrm{his}}} \right)}_{\text{Global Verification}} $$
+            $$ \hat{r}^{\mathrm{PI}}_{t,i} := \underbrace{ \frac{G \cdot A(y_{t-1,i})} {\sum_{j=1}^G \lvert A(y_{t-1,j}) \rvert} }_{\text{Local Attribution}} \;\cdot\; \underbrace{\phi_\lambda \left(\frac{\mu_t - \mu_{\mathrm{his}}}{\sigma_{\mathrm{his}}} \right)}_{\text{Global Verification}} $$
           </p>
         </div>
       </div>
@@ -794,25 +794,39 @@
     <div class="content has-text-justified">
       <h4 class="subsection-title">Main Results</h4>
       <p>
-        PIPO is a plug-and-play framework. We integrate it atop standard group-based RL baselines (GRPO, GSPO, and DAPO) across Qwen3-4B-Base and Qwen3-8B-Base. Our math benchmarks include MATH500, AIME2025, AMC23, and MINERVA.
+        PIPO is a plug-and-play framework. We integrate it atop standard group-based RL baselines (GRPO, GSPO, and DAPO) across Qwen3-4B-Base and Qwen3-8B-Base. Our math benchmarks include MATH500, AIME2025, AMC2023, Minerva and OlympiadBench.
       </p>
     </div>
     
     <div class="figure-container">
-      <center><img src="./static/images/fig_table1.png" alt="Main Results on Mathematical Reasoning" style="max-width: 85%;"></center>
+      <center><img src="./static/images/fig_table1.png" alt="Main Results on Mathematical Reasoning" style="max-width: 95%;"></center>
       <p class="figure-caption">
         <strong>Main Results on Mathematical Reasoning.</strong> PIPO consistently improves the performance of group-based RL algorithms across all benchmarks and model scales.
     </div>
 
     <div class="figure-container">
-      <center><img src="./static/images/fig_main.png" alt="Training Dynamics" style="max-width: 88%;"></center>
+      <center><img src="./static/images/fig_main.png" alt="Training Dynamics" style="max-width: 92%;"></center>
       <p class="figure-caption">
-        <strong>Training Dynamics.</strong> PIPO outperforms on accuracy and response length across training steps.
+        <strong>Training Dynamics.</strong> PIPO outperforms on accuracy and response length across training steps on Qwen3-4B-Base.
       </p>
     </div>
 
     <div class="content has-text-justified">
-      <h4 class="subsection-title">Ability Beyond Math</h4>
+      <h4 class="subsection-title">Robust Multi-Sample Reasoning</h4>
+      <p>
+        Standard open-loop methods are highly sensitive to sampling noise. By actively detecting and suppressing detrimental updates, PIPO dynamically rectifies the optimization trajectory. This retrospective filtering maintains a robust exploration space, consistently elevating multi-sample reasoning (Pass@8) across all baselines.
+      </p>
+    </div>
+
+    <div class="figure-container">
+      <center><img src="./static/images/fig_table5.png" alt="Pass@8 Results" style="max-width: 70%;"></center>
+      <p class="figure-caption">
+        Pass@8 Results for Qwen3-4B-Base. PIPO consistently enhances multi-sample reasoning performance across all baselines, demonstrating its robustness to sampling noise and its ability to maintain a stable optimization trajectory.
+      </p>
+    </div>
+
+    <div class="content has-text-justified">
+      <h4 class="subsection-title">Scientific Reasoning Capability</h4>
       <p>
         We evaluate PIPO with Qwen3-4B-Base on SciKnowEval to assess its performance on knowledge-rich and logic-intensive subjects across Physics, Biology, Chemistry, and Material Science.
       </p>
@@ -821,14 +835,15 @@
     <div class="figure-container">
       <center><img src="./static/images/fig_table2.png" alt="SciKnowEval Results" style="max-width: 70%;"></center>
       <p class="figure-caption">
-        <strong>SciKnowEval Results.</strong> PIPO enhances complex reasoning capability beyond math datasets, demonstrating that improvement verification is a general alignment principle — not task-specific tuning.
+        <strong>SciKnowEval Results.</strong> PIPO enhances complex reasoning capability on SciKnowEval tasks, demonstrating that our closed-loop mechanism effectively enhances logical deduction in knowledge-dense
+        environments.
       </p>
     </div>
 
     <div class="content has-text-justified">
       <h4 class="subsection-title">Ablation Studies</h4>
       <p>
-        We investigate the sensitivity of PIPO to its core design choices: the historical window size ($K$) and the rectification strategy ($\phi$).
+        We investigate the sensitivity of PIPO to its core design choices: the historical window size ($K$) and the rectification strength ($\lambda$).
       </p>
     </div>
     
@@ -837,30 +852,30 @@
         <h4 style="text-align: center; color: #4b5563;">Historical Window Size ($K$)</h4>
         <center><img src="./static/images/fig_table3.png" alt="Ablation on Window Size" style="width: 100%; margin-top: 1rem;"></center>
         <p style="font-size: 0.9rem; margin-top: 1rem; line-height: 1.6;">
-          Smaller windows yield higher peak performance but high variance, whereas larger windows underestimate rapid improvement. $K=8$ achieves the optimal balance between rapid adaptation and stable estimation.
+          The sliding window $K$ controls the historical baseline. While smaller windows are susceptible to batch noise and larger ones introduce stale data, $K=8$ emerges as a robust equilibrium, effectively balancing stable estimation with rapid responsiveness.
         </p>
       </div>
       
       <div class="math-box" style="border-top: 3px solid #6b7280;">
-        <h4 style="text-align: center; color: #4b5563;">Rectification Strategy ($\phi$)</h4>
+        <h4 style="text-align: center; color: #4b5563;">Rectification Strategy ($\lambda$)</h4>
         <center><img src="./static/images/fig_table4.png" alt="Ablation on Rectification" style="width: 100%; margin-top: 1rem;"></center>
         <p style="font-size: 0.9rem; margin-top: 1rem; line-height: 1.6;">
-          The Unidirectional setting ([0, 0.5]) yields the best performance. Explicitly penalizing negative improvement signals (bidirectional) can introduce additional instability in sparse-reward tasks.
+         $\lambda$ determines the suppression strength applied to negative improvement signals. Hard suppression ($\lambda=1$) overly restricts exploration, whereas no suppression ($\lambda=0$) fails to filter noise. A soft suppression ($\lambda=0.1$) achieves the optimal balance, gently dampening harmful updates without limiting the exploration space.
         </p>
       </div>
     </div>
 
     <div class="content has-text-justified">
-      <h4 class="subsection-title">Computational Efficiency</h4>
+      <h4 class="subsection-title">Wall-Clock Efficiency</h4>
       <p>
-        PIPO introduces a retrospective pass, adding modest computational overhead per step. However, owing to highly stabilized gradients and avoidance of destructive updates, PIPO achieves significantly higher sample efficiency and faster wall-clock convergence.
+        Does retrospective verification slow down training? While PIPO introduces a ~45% time overhead, this cost is strictly amortized by its superior sample efficiency. By filtering detrimental updates, PIPO prevents wasted exploration and converges to a significantly higher accuracy plateau that standard methods cannot reach, regardless of how long they train.
       </p>
     </div>
     
     <div class="figure-container">
       <center><img src="./static/images/fig_time.png" alt="Training Efficiency" style="max-width: 70%;"></center>
       <p class="figure-caption">
-        <strong>Training Efficiency Analysis.</strong> PIPO adds 12.0% to 19.3% computational overhead per step. Despite this, PIPO achieves target accuracies in significantly less total wall-clock time compared to standard GRPO, proving its practical efficiency.
+        <strong>Training Efficiency Analysis.</strong> PIPO achieves target accuracies in significantly less total wall-clock time compared to standard GRPO, proving its practical efficiency.
       </p>
     </div>
 
@@ -875,7 +890,7 @@
     
     <div class="content">
       <p>
-        In this work, we address a limitation of existing RLVR: optimization relies on step-wise advantage signals without explicitly verifying whether updates yield genuine policy improvement over time. This objective mismatch causes gradient sensitivity explosion and mode collapse in sparse-reward reasoning tasks.
+        In this work, we address a limitation of existing RLVR: optimization relies on step-wise advantage signals without explicitly verifying whether updates yield genuine policy improvement over time. This objective mismatch causes gradient sensitivity explosion and training instability, in sparse-reward reasoning tasks.
       </p>
       
       <p>
@@ -893,7 +908,7 @@
             <strong>Proposed Algorithm:</strong> We propose <strong>Policy Improvement Policy Optimization(PIPO)</strong>, a practical algorithm that operationalizes PIRL through retrospective verification and a parameter-free Policy Improvement Reward, reinforcing genuine improvements while suppressing detrimental updates.
           </li>
           <li>
-            <strong>Empirical Effectiveness:</strong> Experiments on mathematical reasoning benchmarks demonstrate that PIPO consistently outperforms GRPO and its variants, exhibiting smoother training dynamics and improved robustness against mode collapse.
+            <strong>Empirical Effectiveness:</strong> Experiments on mathematical reasoning benchmarks demonstrate that PIPO consistently outperforms GRPO and its variants, exhibiting smoother training dynamics and improved robustness against training instability.
           </li>
         </ul>
         
